@@ -3,11 +3,13 @@ import { App, Vault, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingT
 // Remember to rename these classes and interfaces!
 
 interface PipedreamToObsidianSettings {
-	apiEndpoint: string;
+    apiEndpoint: string;
+    folder: string;
 }
 
 const DEFAULT_SETTINGS: PipedreamToObsidianSettings = {
-	apiEndpoint: 'default'
+    apiEndpoint: 'default',
+    folder: ''
 }
 
 export default class PipedreamToObsidian extends Plugin {
@@ -16,9 +18,6 @@ export default class PipedreamToObsidian extends Plugin {
 
 	async onload() {
         await this.loadSettings();
-        
-        await this.getTodoistTasks();
-        new Notice('Synced Tasks');
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -89,7 +88,7 @@ ${task.description}
         // Parse the title to remove *"\/<>:|? that wouldn't work as a file name
         const title = task.content.replace(/[*"\\/<>:|?]/g, '');
         // Create a new file in the vault with the task content
-        const newFile = await this.app.vault.create(`${title}.md`, taskMarkdown);
+        const newFile = await this.app.vault.create(`${this.settings.folder}/${title}.md`, taskMarkdown);
 
     }
 
@@ -132,15 +131,25 @@ class PipedreamToObsidianSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('URL Endpoint')
 			.addText(text => text
 				.setPlaceholder('Enter your secret')
 				.setValue(this.plugin.settings.apiEndpoint)
 				.onChange(async (value) => {
 					this.plugin.settings.apiEndpoint = value;
 					await this.plugin.saveSettings();
-				}));
+                }));
+        
+        new Setting(containerEl)
+            .setName('Folder')
+            .addText(text => text
+                .setPlaceholder('Enter the folder to save notes to')
+                .setValue(this.plugin.settings.folder)
+                .onChange(async (value) => {
+                    this.plugin.settings.folder = value;
+                    await this.plugin.saveSettings();
+                }
+            ));
 	}
 }
 
