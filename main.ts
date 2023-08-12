@@ -1,4 +1,4 @@
-import { App, Vault, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Vault, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -37,7 +37,7 @@ export default class PipedreamToObsidian extends Plugin {
 
     }
 
-    getTodoistTasks = async () => {
+    getTodoistTasks = async () => {        
         // Validate settings.apiEndpoint is a valid http/https url with regex
         if (!this.urlRegex.test(this.settings.apiEndpoint)) {
             new Notice('Please configure the plugin settings before making a call.');
@@ -68,16 +68,25 @@ export default class PipedreamToObsidian extends Plugin {
 
         const todoistTasks: Task[] = Object.values(responseData);
 
+        new Notice(`Found ${todoistTasks.length} tasks`);
+
+        const existingFiles = this.app.vault.getMarkdownFiles();
+        const existingTodoistFiles = existingFiles.filter(file => {
+            const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+            return frontmatter?.todoist_id;
+        });
+
         for (const task of todoistTasks) {
-            await this.todoistTaskToNote (task);
+            await this.todoistTaskToNote(task, existingTodoistFiles);
         }
     }
     
-    todoistTaskToNote = async (task: Task) => {
-        // Convert the task into markdown with extra props as frontmatter
-        const taskMarkdown = 
+    todoistTaskToNote = async (task: Task, existingFiles: TFile[]) => {
+        try {
+            // Convert the task into markdown with extra props as frontmatter
+            const taskMarkdown = 
 `---
-id: ${task.id}
+todoist_id: ${task.id}
 labels: ${task.labels}
 priority: ${task.priority}
 ${task.assigneeId ? `created: ${task.assigneeId}` : ''}
@@ -85,11 +94,27 @@ ${task.assigneeId ? `created: ${task.assigneeId}` : ''}
 ${task.content}
 ${task.description}
 `;
-        // Parse the title to remove *"\/<>:|? that wouldn't work as a file name
-        const title = task.content.replace(/[*"\\/<>:|?]/g, '');
-        // Create a new file in the vault with the task content
-        const newFile = await this.app.vault.create(`${this.settings.folder}/${title}.md`, taskMarkdown);
+            // Parse the title to remove *"\/<>:|? that wouldn't work as a file name
+            const title = task.content.replace(/[*"\\/<>:|?]/g, '');
+            const existingFile = existingFiles.filter(file => {
+                const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+                return frontmatter?.todoist_id === task.id;
+            });
 
+            // Check if file already exists, if it does, do nothing
+            if (!existingFile.length) {
+                return;
+            }
+
+            // Create a new file in the vault with the task content
+            new Notice(`Saving ${title}`);
+            
+            await this.app.vault.create(`${this.settings.folder}/${title}.md`, taskMarkdown);
+            new Notice(`Saved ${task.content}`);
+        } catch(e) {
+            console.log(e);
+            new Notice(`Error: ${e}`);
+        }
     }
 
 	async loadSettings() {
