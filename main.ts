@@ -76,6 +76,8 @@ export default class PipedreamToObsidian extends Plugin {
             return frontmatter?.todoist_id;
         });
 
+        new Notice(`Found ${existingTodoistFiles.length} tasks`);
+
         for (const task of todoistTasks) {
             await this.todoistTaskToNote(task, existingTodoistFiles);
         }
@@ -97,19 +99,20 @@ ${task.description}
             // Parse the title to remove *"\/<>:|? that wouldn't work as a file name
             const title = task.content.replace(/[*"\\/<>:|?]/g, '');
             const existingFile = existingFiles.filter(file => {
-                const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-                return frontmatter?.todoist_id === task.id;
+                const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter
+                return frontmatter?.todoist_id == task.id;
             });
 
             // Check if file already exists, if it does, do nothing
-            if (!existingFile.length) {
+            if (existingFile.length) {
+                new Notice(`${title} already exists`);
                 return;
             }
 
             // Create a new file in the vault with the task content
-            new Notice(`Saving ${title}`);
+            new Notice(`Saving ${title}...`);
             
-            await this.app.vault.create(`${this.settings.folder}${title}.md`, taskMarkdown);
+            await this.app.vault.create(`${this.settings.folder}/${title}.md`, taskMarkdown);
             new Notice(`Saved ${task.content}`);
         } catch(e) {
             console.log(e);
