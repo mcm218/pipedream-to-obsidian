@@ -109,7 +109,7 @@ ${task.description}
             // Create a new file in the vault with the task content
             new Notice(`Saving ${title}`);
             
-            await this.app.vault.create(`${this.settings.folder}/${title}.md`, taskMarkdown);
+            await this.app.vault.create(`${this.settings.folder}${title}.md`, taskMarkdown);
             new Notice(`Saved ${task.content}`);
         } catch(e) {
             console.log(e);

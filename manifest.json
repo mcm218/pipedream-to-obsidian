@@ -1,7 +1,7 @@
 {
 	"id": "pipedream-to-obsidian",
 	"name": "Pipedream to Obsidian",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "0.15.0",
 	"description": "This is a plugin for connecting Pipedream to Obsidian",
 	"author": "Obsidian",
